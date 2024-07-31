@@ -19,16 +19,16 @@ q_ddot_sym = [q1_ddot; q2_ddot; q3_ddot];
 % Torque inputs
 tau = sym('tau', [3, 1]);
 
-% lambda1 = diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]);
-% lambda2 = diag([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]);
-lambda1 = diag([5, 5, 5, 5, 5, 5, 5, 5]);
-lambda2 = diag([2, 2, 2, 2, 2, 2, 2, 2]);
+lambda1 = diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+lambda2 = diag([0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35]);
+% lambda1 = diag([5, 5, 5, 5, 5, 5, 5, 5]);
+% lambda2 = diag([2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5]);
 
 K = diag([0.5, 0.5, 0.5]);
 
 % Controller gains
 Kp = diag([30, 30, 30]);
-Kd = diag([11, 11, 11]);
+Kd = diag([12, 12, 12]);
 
 %% DH table
 DHTABLE = [ pi/2 0 l(1) q(1);
@@ -78,22 +78,29 @@ q_ddot_curr_history = zeros(size(q_traj));
 r_hat_history = zeros(size(q_traj));
 tau_history = zeros(size(q_traj));
 integrand_history = zeros(3, length(t)-1);
+tau_ext_history = zeros(size(q_traj));
 
 % Store initial conditions
 q_curr_history(:, 1) = q_curr;
 q_dot_curr_history(:, 1) = q_dot_curr;
 
-options = odeset('RelTol',1e-6,'AbsTol',1e-10);
+%% options
+options = odeset('RelTol',1e-10,'AbsTol',1e-10);
 
 up_threshold = 3;
-down_threshold = -6;
+down_threshold = -3.5;
+
+%% external force parameters
+f_ext = [0; 0; 45];  % Force in Newtons
+f_ext_start = 10;  % Time when the force is applied
+f_ext_duration = 0.25;  % Duration of the force application
 
 %% main loop
 for i = 1:length(t)-1
     % Update the joint angles
-    Q_0(1).JointPosition = q_traj(1, i);
-    Q_0(2).JointPosition = q_traj(2, i);
-    Q_0(3).JointPosition = q_traj(3, i);
+    Q_0(1).JointPosition = q_curr(1);
+    Q_0(2).JointPosition = q_curr(2);
+    Q_0(3).JointPosition = q_curr(3);
 
     % Desired state
     q_des = q_traj(:, i);
@@ -119,7 +126,6 @@ for i = 1:length(t)-1
 
     % Integrate the dynamics to update the actual state
     [t_step, y_step] = ode45(@(t, y) dynamic_model(t, y, M_hat, C_hat, G_hat, tau), [t(i) t(i+1)], [q_curr; q_dot_curr], options);
-    
 
     q_curr = y_step(end, 1:3).';
     q_dot_curr = y_step(end, 4:6).';
@@ -128,12 +134,22 @@ for i = 1:length(t)-1
     % Compute current acceleration
     q_ddot_curr = (q_dot_curr - prev_q_dot_curr) / dt;
 
+
+     % Add external torque if the current time matches the external force time
+    if t(i) >= f_ext_start && t(i) <= (f_ext_start + f_ext_duration)
+        J_inv = get_J(q_curr(1), q_curr(2), q_curr(3))';  % Compute Jacobian at the end-effector
+        tau_ext = J_inv * f_ext;  % Compute the corresponding joint torques
+    else
+        tau_ext = [0; 0; 0];
+    end
+
     % Store actual values
     q_curr_history(:, i) = q_curr;
     q_dot_curr_history(:, i) = q_dot_curr;
     q_ddot_curr_history(:, i) = q_ddot_curr;
     
     tau_history(:, i) = tau;
+    tau_ext_history(:, i) = tau_ext;
 
     % Compute the regressor matrix
     Y_curr = double(subs(Y, {q1, q2, q3, q1_dot, q2_dot, q3_dot, q1_ddot, q2_ddot, q3_ddot}, ...
@@ -146,9 +162,9 @@ for i = 1:length(t)-1
     
     % trapezoidal rule
     % if i > 1
-    %     integral_term = (integral_term + 0.5 * (integrand + prev_integrand)) * dt;
+    %     integral_term = integral_term + 0.5 * (integrand + prev_integrand) * dt;
     % else
-    %     integral_term = (integral_term + integrand) * dt;
+    %     integral_term = integral_term + integrand * dt;
     % end
     integrand_history(:, i) = integrand;
 
@@ -157,7 +173,7 @@ for i = 1:length(t)-1
     end
 
     %compute evolution of generalized momentum and its estimation
-    p_dot = C'*q_dot_curr - G + tau;
+    p_dot = C'*q_dot_curr - G + tau + tau_ext;
     p_dot_hat = C_hat'*q_dot_curr - G_hat + tau + r_hat;
     
     % Compute momentum residual
@@ -194,7 +210,7 @@ end
 
 figure;
 plot(t(1:end), r_hat_history);
-title('Momentum Residual (r)');
+title('Momentum Residual (kg*m/s)');
 xlabel('Time (s)');
 ylabel('Residual');
 axis([min(t) max(t) -40 40]);
