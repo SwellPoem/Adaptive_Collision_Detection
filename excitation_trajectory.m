@@ -74,7 +74,10 @@ function [q_trajectory, p_trajectory, dp_trajectory, ddp_trajectory] = excitatio
     q0_num = struct2array(q0);
 
     start_point = [0, 0.5, 0.7];
-    radius = [0.6, 0.3, 0.2];
+    radius = [0.6, 0.2, 0.2];
+
+    % start_point=[0, 0.5, 0.6];
+    % radius = [0.4, 0, 0.4];
 
     % Ellipsoid parameters
     a = radius(1);  % Radius in x-direction
@@ -112,6 +115,10 @@ function [q_trajectory, p_trajectory, dp_trajectory, ddp_trajectory] = excitatio
         x = x_center + a * cos(2 * theta) * sin(theta);
         y = y_center + b * sin(2 * theta);
         z = z_center + c * cos(2 * theta);
+
+        % x = x_center + a * cos(2 * theta);
+        % y = y_center + b;
+        % z = z_center + c * sin(theta);
 
         % Define the end-effector pose
         end_effector_pose = trvec2tform([x, y, z]);
