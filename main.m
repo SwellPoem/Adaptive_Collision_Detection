@@ -102,7 +102,7 @@ xlim([-1 1]);
 ylim([-1 1]);
 zlim([0 1.1]);
 view(135, 5);
-h=quiver3(0,0,0,0,0,0,'AutoScaleFactor',1/40,'LineWidth',2,'LineStyle', '-', 'Color',[0 0 1], ShowArrowHead='on');
+arrow=quiver3(0,0,0,0,0,0,'AutoScaleFactor',1/40,'LineWidth',2,'LineStyle', '-', 'Color',[0 0 1], ShowArrowHead='on');
 
 % %% main loop
 % for i = 1:length(t)-1
@@ -218,12 +218,12 @@ h=quiver3(0,0,0,0,0,0,'AutoScaleFactor',1/40,'LineWidth',2,'LineStyle', '-', 'Co
 % 
 %     % plot the external force
 %     if t(i) >= f_ext_start && t(i) <= (f_ext_start + f_ext_duration)
-%         h.XData=end_effector_pos(1);
-%         h.YData=end_effector_pos(2);
-%         h.ZData=end_effector_pos(3);
-%         h.UData=f_ext(1);
-%         h.VData=f_ext(2);
-%         h.WData=f_ext(3);
+%         arrow.XData=end_effector_pos(1);
+%         arrow.YData=end_effector_pos(2);
+%         arrow.ZData=end_effector_pos(3);
+%         arrow.UData=f_ext(1);
+%         arrow.VData=f_ext(2);
+%         arrow.WData=f_ext(3);
 %     end
 % 
 %     drawnow;
@@ -336,12 +336,12 @@ for i = 1:length(t)-1
 
         % plot the external force
         if t(i) >= f_ext_start && t(i) <= (f_ext_start + f_ext_duration)
-            h.XData=end_effector_pos(1);
-            h.YData=end_effector_pos(2);
-            h.ZData=end_effector_pos(3);
-            h.UData=f_ext(1);
-            h.VData=f_ext(2);
-            h.WData=f_ext(3);
+            arrow.XData=end_effector_pos(1);
+            arrow.YData=end_effector_pos(2);
+            arrow.ZData=end_effector_pos(3);
+            arrow.UData=f_ext(1);
+            arrow.VData=f_ext(2);
+            arrow.WData=f_ext(3);
         end
  
         drawnow;
@@ -419,102 +419,19 @@ for i = 1:length(t)-1
         % actual end-effector position
         end_effector_pos = get_end_eff_pos(q_curr(1), q_curr(2), q_curr(3));
 
-        h.XData=0;
-        h.YData=0;
-        h.ZData=0;
-        h.UData=0;
-        h.VData=0;
-        h.WData=0;
-    
-        drawnow;
+        arrow.XData=0;
+        arrow.YData=0;
+        arrow.ZData=0;
+        arrow.UData=0;
+        arrow.VData=0;
+        arrow.WData=0;
 
+        drawnow;
     end
 end
 
 %% plots
-figure;
-plot(t(1:end), r_hat_history);
-title('Momentum Residual (kg*m/s)');
-xlabel('Time (s)');
-ylabel('Residual');
-axis([min(t) max(t) -40 40]);
-legend('r1', 'r2', 'r3');
-yline(up_threshold, '--r');
-yline(down_threshold, '--r');
-xline(f_ext_start, '--b');
 
-figure;
-plot(t(1:end-1), X_est_history);
-title('X_est');
-xlabel('Time (s)');
-ylabel('X_est');
-xline(f_ext_start, '--b');
-
-% Plot joint positions
-figure;
-subplot(3, 1, 1);
-plot(t, q_traj(1, :), 'r', t, q_curr_history(1, :), 'b');
-title('Joint 1 Position');
-xlabel('Time (s)');
-ylabel('Position (rad)');
-legend('Desired', 'Actual');
-
-subplot(3, 1, 2);
-plot(t, q_traj(2, :), 'r', t, q_curr_history(2, :), 'b');
-title('Joint 2 Position');
-xlabel('Time (s)');
-ylabel('Position (rad)');
-legend('Desired', 'Actual');
-
-subplot(3, 1, 3);
-plot(t, q_traj(3, :), 'r', t, q_curr_history(3, :), 'b');
-title('Joint 3 Position');
-xlabel('Time (s)');
-ylabel('Position (rad)');
-legend('Desired', 'Actual');
-
-% Plot joint velocities
-figure;
-subplot(3, 1, 1);
-plot(t, q_dot_traj(1, :), 'r', t, q_dot_curr_history(1, :), 'b');
-title('Joint 1 Velocity');
-xlabel('Time (s)');
-ylabel('Velocity (rad/s)');
-legend('Desired', 'Actual');
-
-subplot(3, 1, 2);
-plot(t, q_dot_traj(2, :), 'r', t, q_dot_curr_history(2, :), 'b');
-title('Joint 2 Velocity');
-xlabel('Time (s)');
-ylabel('Velocity (rad/s)');
-legend('Desired', 'Actual');
-
-subplot(3, 1, 3);
-plot(t, q_dot_traj(3, :), 'r', t, q_dot_curr_history(3, :), 'b');
-title('Joint 3 Velocity');
-xlabel('Time (s)');
-ylabel('Velocity (rad/s)');
-legend('Desired', 'Actual');
-
-% Plot joint accelerations
-figure;
-subplot(3, 1, 1);
-plot(t, q_ddot_traj(1, :), 'r', t, q_ddot_curr_history(1, :), 'b');
-title('Joint 1 Acceleration');
-xlabel('Time (s)');
-ylabel('Acceleration (rad/s^2)');
-legend('Desired', 'Actual');
-
-subplot(3, 1, 2);
-plot(t, q_ddot_traj(2, :), 'r', t, q_ddot_curr_history(2, :), 'b');
-title('Joint 2 Acceleration');
-xlabel('Time (s)');
-ylabel('Acceleration (rad/s^2)');
-legend('Desired', 'Actual');
-
-subplot(3, 1, 3);
-plot(t, q_ddot_traj(3, :), 'r', t, q_ddot_curr_history(3, :), 'b');
-title('Joint 3 Acceleration');
-xlabel('Time (s)');
-ylabel('Acceleration (rad/s^2)');
-legend('Desired', 'Actual');
+plot_results(t, r_hat_history, X_est_history, q_traj, q_curr_history, ...
+                      q_dot_traj, q_dot_curr_history, q_ddot_traj, q_ddot_curr_history, ...
+                      up_threshold, down_threshold, f_ext_start);
