@@ -2,6 +2,8 @@ clear variables
 close all
 clc
 
+addpath('library/')
+
 %% Load dynamic model parameters
 load('data.mat');  % initial parameters
 
