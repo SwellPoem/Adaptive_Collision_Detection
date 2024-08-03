@@ -1,6 +1,6 @@
 function plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_history, q_traj, q_curr_history, ...
                       q_dot_traj, q_dot_curr_history, q_ddot_traj, q_ddot_curr_history, ...
-                      up_threshold, down_threshold, f_ext_start, f_ext2_start)
+                      up_threshold, down_threshold, f_ext_start, f_ext2_start, p_traj, end_effector_pos_history)
     figure;
     plot(t(1:end), r_hat_history);
     title("Momentum Residual","Interpreter","Latex");
@@ -39,6 +39,38 @@ function plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_hist
     xlabel("$ s $", "Interpreter","Latex");
     ylabel("$ Nm $","Interpreter","Latex");
     legend("$\tau_{1}$","$\tau_{2}$","$\tau_{3}$", "Interpreter","Latex");
+    xline(f_ext_start, "--b");
+    xline(f_ext2_start, "--b");
+    grid on;
+
+    %plot end-effector position
+    figure;
+    subplot(3, 1, 1);
+    plot(t(1:end), p_traj(1,:), "r", t(1:end), end_effector_pos_history(1,:), "b");
+    title(" end effector x position ","Interpreter","Latex");
+    xlabel("$ s $", "Interpreter","Latex");
+    ylabel("$ m $","Interpreter","Latex");
+    % legend("Desired", "Actual", "Interpreter","Latex");
+    xline(f_ext_start, "--b");
+    xline(f_ext2_start, "--b");
+    grid on;
+
+    subplot(3, 1, 2);
+    plot(t(1:end), p_traj(2,:), "r", t(1:end), end_effector_pos_history(2,:), "b");
+    title(" end effector y position ","Interpreter","Latex");
+    xlabel("$ s $", "Interpreter","Latex");
+    ylabel("$ m $","Interpreter","Latex");
+    % legend("Desired", "Actual", "Interpreter","Latex");
+    xline(f_ext_start, "--b");
+    xline(f_ext2_start, "--b");
+    grid on;
+
+    subplot(3, 1, 3);
+    plot(t(1:end), p_traj(3,:), "r", t(1:end), end_effector_pos_history(3,:), "b");
+    title(" end effector z position ","Interpreter","Latex");
+    xlabel("$ s $", "Interpreter","Latex");
+    ylabel("$ m $","Interpreter","Latex");
+    % legend("Desired", "Actual", "Interpreter","Latex");
     xline(f_ext_start, "--b");
     xline(f_ext2_start, "--b");
     grid on;

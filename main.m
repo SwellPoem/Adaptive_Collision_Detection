@@ -77,6 +77,7 @@ r_hat_history = zeros(size(q_traj));
 tau_history = zeros(size(q_traj));
 integrand_history = zeros(3, length(t)-1);
 tau_ext_history = zeros(size(q_traj));
+end_effector_pos_history = zeros(size(p_traj));
 
 % store initial conditions
 q_curr_history(:, 1) = q_curr;
@@ -103,10 +104,10 @@ hold on;
 grid on;
 axis("equal");
 xlim([-1 1]);
-ylim([-1 1]);
+ylim([-0.5 1]);
 zlim([0 1.1]);
-view(135, 5);
-arrow=quiver3(0,0,0,0,0,0,'AutoScaleFactor',1/40,'LineWidth',2,'LineStyle', '-', 'Color',[0 0 1], ShowArrowHead='on');
+view(135, 10);
+arrow=quiver3(0,0,0,0,0,0,'AutoScaleFactor',1/50,'LineWidth',2,'LineStyle', '-', 'Color',[1 0 0], ShowArrowHead='on');
 
 %% main loop
 for i = 1:length(t)-1
@@ -209,7 +210,7 @@ for i = 1:length(t)-1
         % Show
         show(robot, Q_0, 'PreservePlot', false, 'FastUpdate', 1, 'Collisions', 'on');
         hold on;
-        plot3(p_traj(1, :), p_traj(2, :), p_traj(3, :), 'r-', 'LineWidth', 1);
+        plot3(p_traj(1, :), p_traj(2, :), p_traj(3, :), 'Color', [0.3010 0.7450 0.9330], 'LineStyle', '-', 'LineWidth', 1);
     
         % actual end-effector position
         end_effector_pos = get_end_eff_pos(q_curr(1), q_curr(2), q_curr(3));
@@ -230,6 +231,8 @@ for i = 1:length(t)-1
             arrow.VData=f_ext2(2);
             arrow.WData=f_ext2(3);
         end
+
+        end_effector_pos_history(:, i) = end_effector_pos;
 
         drawnow;
     else
@@ -293,7 +296,7 @@ for i = 1:length(t)-1
         show(robot, Q_0, 'PreservePlot', false, 'FastUpdate', 1, 'Collisions', 'on');
   
         hold on;
-        plot3(p_traj(1, :), p_traj(2, :), p_traj(3, :), 'r-', 'LineWidth', 1);
+        plot3(p_traj(1, :), p_traj(2, :), p_traj(3, :), 'Color', [0.3010 0.7450 0.9330], 'LineStyle', '-', 'LineWidth', 1);
     
         % actual end-effector position
         end_effector_pos = get_end_eff_pos(q_curr(1), q_curr(2), q_curr(3));
@@ -305,6 +308,8 @@ for i = 1:length(t)-1
         arrow.VData=0;
         arrow.WData=0;
 
+        end_effector_pos_history(:, i) = end_effector_pos;
+
         drawnow;
     end
 end
@@ -313,4 +318,4 @@ end
 
 plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_history, q_traj, q_curr_history, ...
                       q_dot_traj, q_dot_curr_history, q_ddot_traj, q_ddot_curr_history, ...
-                      up_threshold, down_threshold, f_ext_start, f_ext2_start);
+                      up_threshold, down_threshold, f_ext_start, f_ext2_start, p_traj, end_effector_pos_history);
