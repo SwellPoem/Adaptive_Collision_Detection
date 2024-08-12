@@ -76,9 +76,6 @@ function [q_trajectory, p_trajectory, dp_trajectory, ddp_trajectory] = excitatio
     start_point = [0, 0.5, 0.7];
     radius = [0.6, 0.2, 0.2];
 
-    % start_point=[0, 0.5, 0.6];
-    % radius = [0.4, 0, 0.4];
-
     % Ellipsoid parameters
     a = radius(1);  % Radius in x-direction
     b = radius(2);  % Radius in y-direction

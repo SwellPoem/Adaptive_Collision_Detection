@@ -1,4 +1,4 @@
-function plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_history, q_traj, q_curr_history, ...
+function plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_history, tau_f_history, q_traj, q_curr_history, ...
                       q_dot_traj, q_dot_curr_history, q_ddot_traj, q_ddot_curr_history, ...
                       up_threshold, down_threshold, f_ext_start, f_ext2_start, p_traj, end_effector_pos_history)
     figure;
@@ -6,7 +6,7 @@ function plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_hist
     title("Momentum Residual","Interpreter","Latex");
     xlabel("$ s $", "Interpreter","Latex");
     ylabel("$kg * m/s$","Interpreter","Latex");
-    axis([min(t) max(t) -50 50]);
+    axis([min(t) max(t) -30 30]);
     yline(up_threshold, "--r");
     yline(down_threshold, "--r");
     xline(f_ext_start, "--b");
@@ -39,6 +39,16 @@ function plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_hist
     xlabel("$ s $", "Interpreter","Latex");
     ylabel("$ Nm $","Interpreter","Latex");
     legend("$\tau_{1}$","$\tau_{2}$","$\tau_{3}$", "Interpreter","Latex");
+    xline(f_ext_start, "--b");
+    xline(f_ext2_start, "--b");
+    grid on;
+
+    figure;
+    plot(t(1:end), tau_f_history);
+    title("friction","Interpreter","Latex");
+    xlabel("$ s $", "Interpreter","Latex");
+    ylabel("$ N $","Interpreter","Latex");
+    legend("$\tau_f{1}$","$\tau_f{2}$","$\tau_f{3}$", "Interpreter","Latex");
     xline(f_ext_start, "--b");
     xline(f_ext2_start, "--b");
     grid on;

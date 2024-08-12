@@ -17,12 +17,15 @@ q_sym = [q1; q2; q3];
 q_dot_sym = [q1_dot; q2_dot; q3_dot];
 q_ddot_sym = [q1_ddot; q2_ddot; q3_ddot];
 
+%viscous friction vector
+fv = [5; 5; 5];
+
 % torque initialization
 tau = sym('tau', [3, 1]);
 
 % lambda parameters for update
-lambda1 = diag([0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]);
-lambda2 = diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+lambda1 = diag([0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]);
+lambda2 = diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
 
 % redisual gain
 K = diag([0.2, 0.2, 0.2]);
@@ -42,11 +45,13 @@ robot = createRobot(DHTABLE, l);
 %% Robot dynamics
 [M, C, G, M_par, C_par, G_par] = dynamics(m, I, l, dc, g0, q1, q2, q3);
 
+[tau_f, tau_f_par] = friction(fv, q_dot_sym);
+
 % Dynamic equation
-dynamic_eq = M * q_ddot_sym + C + G == tau;
+dynamic_eq = M * q_ddot_sym + C + G + tau_f == tau;
 
 %% Regressor matrix
-[Y, X] = regressor_matrix(M_par, C_par, G_par, m, I, l, dc, g0, q1_ddot, q2_ddot, q3_ddot);
+[Y, X] = regressor_matrix(M_par, C_par, G_par, tau_f_par, fv, m, I, l, dc, g0, q1_ddot, q2_ddot, q3_ddot);
 
 %% Excitation trajectory
 T = 40; % Total time
@@ -60,26 +65,26 @@ save('trajectory_data.mat', 'q_traj', 'p_traj', 'dp_traj', 'ddp_traj');
 
 [q_dot_traj, q_ddot_traj] = inv_diff_kin(q_traj, dp_traj, ddp_traj);
 
-r_hat = zeros(3, 1);  % initial momentum residual
-X_est = X;  % initial estimate of dynamic parameters
-integral_term = zeros(3, 1);  % integral term for r_hat
-prev_r_hat = r_hat;  % previous r_hat for derivative computation
-
-% initialize the actual state
-q_curr = q_traj(:, 1);
-q_dot_curr = q_dot_traj(:, 1);
-
-prev_q_dot_curr = q_dot_curr;
-
 %% Preallocation
 q_curr_history = zeros(size(q_traj));
 q_dot_curr_history = zeros(size(q_traj));
 q_ddot_curr_history = zeros(size(q_traj));
 r_hat_history = zeros(size(q_traj));
 tau_history = zeros(size(q_traj));
-integrand_history = zeros(3, length(t)-1);
+tau_f_history = zeros(size(q_traj));
+integrand_history = zeros(size(q_traj));
 tau_ext_history = zeros(size(q_traj));
 end_effector_pos_history = zeros(size(p_traj));
+
+r_hat = zeros(3, 1);  % initial momentum residual
+X_est = X;  % initial estimate of dynamic parameters
+integral_term = zeros(3, 1);  % integral term for r_hat
+prev_r_hat = r_hat;  % previous r_hat for derivative computation
+
+%% initialize the actual state
+q_curr = q_traj(:, 1);
+q_dot_curr = q_dot_traj(:, 1);
+prev_q_dot_curr = q_dot_curr;
 
 % store initial conditions
 q_curr_history(:, 1) = q_curr;
@@ -88,15 +93,15 @@ q_dot_curr_history(:, 1) = q_dot_curr;
 %% options
 options = odeset('RelTol',2e-1,'AbsTol',2e-1);
 
-up_threshold = 4;
-down_threshold = -3.5;
+up_threshold = 2;
+down_threshold = -1.5;
 
 %% external force parameters
-f_ext = [-20; 0; 0];  % Force in Newtons
+f_ext = [-20; 7; 0];  % Force 
 f_ext_start = 4;  % Time when the force is applied
-f_ext_duration = 0.2;  % Duration of the force application
+f_ext_duration = 1;  % Duration of the force application
 
-f_ext2 = [0; -5; -25];  % Force in Newtons
+f_ext2 = [0; -10; -20];  % Force
 f_ext2_start = 27;  % Time when the force is applied
 f_ext2_duration = 0.25;  % Duration of the force application
 
@@ -122,13 +127,15 @@ for i = 1:length(t)-1
     q_des = q_traj(:, i);
     q_dot_des = q_dot_traj(:, i);
     q_ddot_des = q_ddot_traj(:, i);
-
+    
     % inertia, Coriolis and gravity matrices of desired state
-    M = double(subs(M, {q1, q2, q3, q1_dot, q2_dot, q3_dot}, ...
+    M_des = double(subs(M, {q1, q2, q3, q1_dot, q2_dot, q3_dot}, ...
         {q_des(1), q_des(2), q_des(3), q_dot_des(1), q_dot_des(2), q_dot_des(3)}));
-    C = double(subs(C, {q1, q2, q3, q1_dot, q2_dot, q3_dot}, ...
+    C_des = double(subs(C, {q1, q2, q3, q1_dot, q2_dot, q3_dot}, ...
         {q_des(1), q_des(2), q_des(3), q_dot_des(1), q_dot_des(2), q_dot_des(3)}));
-    G = double(subs(G, {q1, q2, q3}, {q_des(1), q_des(2), q_des(3)}));
+    G_des = double(subs(G, {q1, q2, q3}, {q_des(1), q_des(2), q_des(3)}));
+
+    tau_f_des = double(subs(tau_f, {q1_dot, q2_dot, q3_dot}, {q_dot_des(1), q_dot_des(2), q_dot_des(3)}));
 
     % estimated inertia, Coriolis, and gravity matrices
     M_hat = double(subs(M, {q1, q2, q3, q1_dot, q2_dot, q3_dot}, ...
@@ -138,7 +145,7 @@ for i = 1:length(t)-1
     G_hat = double(subs(G, {q1, q2, q3}, {q_curr(1), q_curr(2), q_curr(3)}));
 
     % compute control input tau
-    tau = M_hat * (q_ddot_des + Kp * (q_des - q_curr) + Kd * (q_dot_des - q_dot_curr)) + C_hat .* q_dot_curr + G_hat;
+    tau = M_hat * (q_ddot_des + Kp * (q_des - q_curr) + Kd * (q_dot_des - q_dot_curr)) + C_hat .* q_dot_curr + G_hat + tau_f_des;
 
      % external torque if the current time matches the external force time
     if (t(i) >= f_ext_start && t(i) <= (f_ext_start + f_ext_duration)) || (t(i) >= f_ext2_start && t(i) <= (f_ext2_start + f_ext2_duration))
@@ -155,11 +162,10 @@ for i = 1:length(t)-1
         tau_new = tau + tau_ext;
 
         % dynamics integration to update the actual state
-        [t_step, y_step] = ode45(@(t, y) dynamic_model(t, y, M_hat, C_hat, G_hat, tau_new), [t(i) t(i+1)], [q_curr; q_dot_curr], options);
+        [t_step, y_step] = ode45(@(t, y) dynamic_model(t, y, M_hat, C_hat, G_hat, tau_f_des, tau_new), [t(i) t(i+1)], [q_curr; q_dot_curr], options);
 
         q_curr = y_step(end, 1:3).';
         q_dot_curr = y_step(end, 4:6).';
-
 
         % current acceleration
         q_ddot_curr = (q_dot_curr - prev_q_dot_curr) / dt;
@@ -171,11 +177,11 @@ for i = 1:length(t)-1
     
         tau_history(:, i) = tau_new;
         tau_ext_history(:, i) = tau_ext;
+        tau_f_history(:, i) = tau_f_des;
 
         % regressor matrix
         Y_curr = double(subs(Y, {q1, q2, q3, q1_dot, q2_dot, q3_dot, q1_ddot, q2_ddot, q3_ddot}, ...
             {q_curr(1), q_curr(2), q_curr(3), q_dot_curr(1), q_dot_curr(2), q_dot_curr(3), q_ddot_curr(1), q_ddot_curr(2), q_ddot_curr(3)}));
-        
         
         % integrand
         integrand = tau_new - Y_curr * X_est - r_hat;
@@ -188,8 +194,8 @@ for i = 1:length(t)-1
         end
 
         % evolution of generalized momentum and its estimation
-        p_dot = C'*q_dot_curr - G + tau_new;
-        p_dot_hat = C_hat'*q_dot_curr - G_hat + tau + r_hat;
+        p_dot = C_des'*q_dot_curr - G_des - tau_f_des + tau_new;
+        p_dot_hat = C_hat'*q_dot_curr - G_hat - tau_f_des + tau + r_hat;
     
         % momentum residual
         r_hat = K * integral_term;
@@ -241,7 +247,7 @@ for i = 1:length(t)-1
         tau_ext = [0; 0; 0];
 
         % dynamics integration to update the actual state
-        [t_step, y_step] = ode45(@(t, y) dynamic_model(t, y, M_hat, C_hat, G_hat, tau), [t(i) t(i+1)], [q_curr; q_dot_curr], options);
+        [t_step, y_step] = ode45(@(t, y) dynamic_model(t, y, M_hat, C_hat, G_hat, tau_f_des, tau), [t(i) t(i+1)], [q_curr; q_dot_curr], options);
 
         q_curr = y_step(end, 1:3).';
         q_dot_curr = y_step(end, 4:6).';
@@ -257,6 +263,7 @@ for i = 1:length(t)-1
     
         tau_history(:, i) = tau;
         tau_ext_history(:, i) = tau_ext;
+        tau_f_history(:, i) = tau_f_des;
 
         % regressor matrix
         Y_curr = double(subs(Y, {q1, q2, q3, q1_dot, q2_dot, q3_dot, q1_ddot, q2_ddot, q3_ddot}, ...
@@ -273,8 +280,8 @@ for i = 1:length(t)-1
         end
 
         % evolution of generalized momentum and its estimation
-        p_dot = C'*q_dot_curr - G + tau + tau_ext;
-        p_dot_hat = C_hat'*q_dot_curr - G_hat + tau + r_hat;
+        p_dot = C_des'*q_dot_curr - G_des + tau - tau_f_des + tau_ext;
+        p_dot_hat = C_hat'*q_dot_curr - G_hat - tau_f_des + tau + r_hat;
     
         % momentum residual
         r_hat = K * integral_term;
@@ -318,6 +325,6 @@ end
 
 %% plots
 
-plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_history, q_traj, q_curr_history, ...
+plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_history, tau_f_history, q_traj, q_curr_history, ...
                       q_dot_traj, q_dot_curr_history, q_ddot_traj, q_ddot_curr_history, ...
                       up_threshold, down_threshold, f_ext_start, f_ext2_start, p_traj, end_effector_pos_history);
