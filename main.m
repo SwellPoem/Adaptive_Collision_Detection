@@ -24,15 +24,15 @@ fv = [5; 5; 5];
 tau = sym('tau', [3, 1]);
 
 % lambda parameters for update
-lambda1 = diag([0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]);
-lambda2 = diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+lambda1 = diag([1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5]);
+lambda2 = diag([1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1]);
 
 % redisual gain
 K = diag([0.2, 0.2, 0.2]);
 
 % controller gains
 Kp = diag([80, 80, 80]);
-Kd = diag([17, 17, 17]);
+Kd = diag([15, 15, 15]);
 
 %% DH table
 DHTABLE = [ pi/2 0 l(1) q(1);
@@ -75,6 +75,7 @@ tau_f_history = zeros(size(q_traj));
 integrand_history = zeros(size(q_traj));
 tau_ext_history = zeros(size(q_traj));
 end_effector_pos_history = zeros(size(p_traj));
+f_ext_history = zeros(size(q_traj));
 
 r_hat = zeros(3, 1);  % initial momentum residual
 X_est = X;  % initial estimate of dynamic parameters
@@ -94,16 +95,29 @@ q_dot_curr_history(:, 1) = q_dot_curr;
 options = odeset('RelTol',2e-1,'AbsTol',2e-1);
 
 up_threshold = 2;
-down_threshold = -1.5;
+down_threshold = -1.4;
 
 %% external force parameters
-f_ext = [-20; 7; 0];  % Force 
+disp('Choose external force option:');
+disp('1. Apply default external forces');
+disp('2. Apply zero external forces');
+force_choice = input('Enter choice (1 or 2): ');
+
+if force_choice == 1
+    f_ext = [-35; 5; 0];  % Force
+    f_ext2 = [0; -20; 5];  % Force
+else
+    f_ext = [0; 0; 0];
+    f_ext2 = [0; 0; 0];
+end
+
+% f_ext = [-35; 5; 0];  % Force
 f_ext_start = 4;  % Time when the force is applied
 f_ext_duration = 1;  % Duration of the force application
 
-f_ext2 = [0; -10; -20];  % Force
-f_ext2_start = 27;  % Time when the force is applied
-f_ext2_duration = 0.25;  % Duration of the force application
+% f_ext2 = [0; -20; 5];  % Force
+f_ext2_start = 33;  % Time when the force is applied
+f_ext2_duration = 0.35;  % Duration of the force application
 
 %% figure initialization
 figure;
@@ -154,13 +168,15 @@ for i = 1:length(t)-1
         if t(i) >= f_ext_start && t(i) <= (f_ext_start + f_ext_duration)
             J_inv = get_J(q_curr(1), q_curr(2), q_curr(3))'; 
             tau_ext = J_inv * f_ext;
+            f_ext_history(:,i) = f_ext;
         elseif t(i) >= f_ext2_start && t(i) <= (f_ext2_start + f_ext2_duration)
             J_inv = get_J(q_curr(1), q_curr(2), q_curr(3))'; 
             tau_ext = J_inv * f_ext2;
+            f_ext_history(:,i) = f_ext2;
         end
 
         tau_new = tau + tau_ext;
-
+        
         % dynamics integration to update the actual state
         [t_step, y_step] = ode45(@(t, y) dynamic_model(t, y, M_hat, C_hat, G_hat, tau_f_des, tau_new), [t(i) t(i+1)], [q_curr; q_dot_curr], options);
 
@@ -246,6 +262,8 @@ for i = 1:length(t)-1
     else
         tau_ext = [0; 0; 0];
 
+        f_ext_history(:,i)= [0;0;0];
+
         % dynamics integration to update the actual state
         [t_step, y_step] = ode45(@(t, y) dynamic_model(t, y, M_hat, C_hat, G_hat, tau_f_des, tau), [t(i) t(i+1)], [q_curr; q_dot_curr], options);
 
@@ -325,6 +343,6 @@ end
 
 %% plots
 
-plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_history, tau_f_history, q_traj, q_curr_history, ...
+plot_results(t, r_hat_history, X_est_history, tau_history, tau_ext_history, tau_f_history, f_ext_history, q_traj, q_curr_history, ...
                       q_dot_traj, q_dot_curr_history, q_ddot_traj, q_ddot_curr_history, ...
-                      up_threshold, down_threshold, f_ext_start, f_ext2_start, p_traj, end_effector_pos_history);
+                      up_threshold, down_threshold, f_ext_start, f_ext2_start, p_traj, dp_traj, ddp_traj, end_effector_pos_history);
