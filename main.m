@@ -111,11 +111,9 @@ else
     f_ext2 = [0; 0; 0];
 end
 
-% f_ext = [-35; 5; 0];  % Force
 f_ext_start = 4;  % Time when the force is applied
 f_ext_duration = 1;  % Duration of the force application
 
-% f_ext2 = [0; -20; 5];  % Force
 f_ext2_start = 33;  % Time when the force is applied
 f_ext2_duration = 0.35;  % Duration of the force application
 
@@ -129,6 +127,12 @@ ylim([-0.5 1]);
 zlim([0 1.1]);
 view(135, 10);
 arrow=quiver3(0,0,0,0,0,0,'AutoScaleFactor',1/50,'LineWidth',2,'LineStyle', '-', 'Color',[1 0 0], ShowArrowHead='on');
+
+%% Video initialization
+% videoFileName = fullfile('simulation_video.mp4');
+% videoObj = VideoWriter(videoFileName, 'MPEG-4');
+% videoObj.FrameRate = 30;
+% open(videoObj);
 
 %% main loop
 for i = 1:length(t)-1
@@ -259,6 +263,9 @@ for i = 1:length(t)-1
         end_effector_pos_history(:, i) = end_effector_pos;
 
         drawnow;
+
+        % frame = getframe(gcf);
+        % writeVideo(videoObj, frame);
     else
         tau_ext = [0; 0; 0];
 
@@ -338,8 +345,13 @@ for i = 1:length(t)-1
         end_effector_pos_history(:, i) = end_effector_pos;
 
         drawnow;
+
+        % frame = getframe(gcf);
+        % writeVideo(videoObj, frame);
     end
 end
+
+close(videoObj);
 
 %% plots
 
