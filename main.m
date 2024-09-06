@@ -351,7 +351,7 @@ for i = 1:length(t)-1
     end
 end
 
-close(videoObj);
+% close(videoObj);
 
 %% plots
 
