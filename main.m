@@ -95,7 +95,7 @@ q_dot_curr_history(:, 1) = q_dot_curr;
 options = odeset('RelTol',2e-1,'AbsTol',2e-1);
 
 up_threshold = 2;
-down_threshold = -1.4;
+down_threshold = -2;
 
 %% external force parameters
 disp('Choose external force option:');
