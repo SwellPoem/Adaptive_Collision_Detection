@@ -51,10 +51,10 @@ The trajectory for the end-effector is designed to follow an elliptical path in 
 ### Results
 The results of the simulation include:
 
-	1.	Contact-free test:
+1.	Contact-free test:
   - The dynamic parameters remain stable and the momentum residual stays close to zero.
   - Plots showing the smooth motion of joints and the end-effector.
-	2.	Collision test:
+2.	Collision test:
   - Detects collisions at specified time intervals.
   - Momentum residual peaks during collisions, confirming accurate detection.
   - Graphs showing deviations in joint positions, velocities, and accelerations during the collision events.
